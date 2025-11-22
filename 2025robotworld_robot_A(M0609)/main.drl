@@ -1,0 +1,129 @@
+# ---- Gripper helpers --------------------------------------------------------
+def _pulse_tool(channel: int, pre_wait=1, on_time=2):
+    # 지정된 채널을 ON → 일정 시간 유지 → OFF
+    set_tool_digital_outputs([-1, -2])   # 모든 툴 출력 초기화
+    wait(pre_wait)
+    set_tool_digital_output(channel)     # 채널 ON
+    wait(on_time)
+    set_tool_digital_output(-channel)    # 채널 OFF
+
+def grip(pre_wait=1, on_time=2):
+    _pulse_tool(1, pre_wait, on_time)    # Grip
+
+def ungrip(pre_wait=1, on_time=2):
+    _pulse_tool(2, pre_wait, on_time)    # Ungrip
+
+
+# ---- Motion helpers ---------------------------------------------------------
+def global_speed(j_vel, j_acc, x_vel, x_acc):
+    set_velj(j_vel)
+    set_accj(j_acc)
+    set_velx(x_vel)
+    set_accx(x_acc)
+
+def move_h():
+    movej(posj(90, 0, 0, 0, 0, 0))       # 홈 포즈 이동
+
+
+# ---- Waypoints (make 함수에서 실제 사용되는 것만) ----------------------------
+p1   = posj(86.71, -7.26, -90.41, 259.59, 88.63, -39.77)       # 경유점1
+#pp2  = posx(252.19, -396.79, 109.34, 179.07, -91.28, -84.43)   # 사과 grip 구역
+pp2=posx(330.27, -369.41, 270.33, 179.33, -85.91, -89.52)
+pp3  = posx(338.95, -390.85, 102.3, 179.73, -94.56, -90.16)    # 사과 pick
+pp4  = posx(313.96, -378.63, 266.62, 179.75, -90.78, -90.92)   # 사과 pick 후 up
+
+pp5  = posx(176.44, -13.01, 771.61, 172.14, -125.63, 126.57)   # 경유점2
+pp6  = posx(538.85, 121.6, 553.37, 16.42, 179.81, -178.77)     # 초콜릿 위 정렬
+
+p8   = posj(193.36, -29.33, -43.77, 180.3, 106.75, -90.0)      # 초콜릿 dip2
+p7   = posj(193.36, -29.33, -43.77, 180.3, 106.75, -181.74)    # 초콜릿 dip1
+pp10 = posx(237.59, 44.79, 463.76, 11.2, 78.69, -174.55)       # 흔들기2
+pp9  = posx(266.44, 54.3, 466.19, 14.15, 120.34, -178.04)      # 흔들기1
+
+pp11 = posx(119.59, 162.43, 660.2, 56.46, 87.03, -175.05)      # 경유점3
+pp12 = posx(29.31, 430.56, 400.21, 87.11, 179.1, 170.16)       # 스프링클 위 정렬 (기존 13)
+pp13 = posx(28.75, 426.47, 518.59, 86.82, 178.95, 169.84)      # 스프링클 dip 완료 (기존 14)
+pp14 = posx(-327.49, 221.02, 384.92, 126.57, 82.26, 91.82)     # 고객 전달 위치 (기존 15)
+
+
+# ---- Job sequence -----------------------------------------------------------
+def make():
+    global_speed(100, 50, 100, 50)
+    
+    ungrip()
+    move_h()
+    wait(1)
+
+    # 사과 Pick
+    movej(p1)
+    movel(pp2)
+    #movel(pp3)
+    grip()
+    movel(pp4)
+
+    # 초콜릿 dip 과정
+    movel(pp5)
+    movel(pp6)
+    grip()
+    task_compliance_ctrl([300, 300, 300, 200, 200, 200])
+    amovel([0, 0, -100, 0, 0, 0], t=8, mod=1)   # 하강 중 외력 감지
+    while True:
+        if check_force_condition(axis=2, min=5) == 1:
+            stop(2)  # 현재 하강 모션 정지
+            break
+        wait(0.05)
+
+    release_compliance_ctrl()
+    movel([0, 0, 10, 0, 0, 0], mod=1)   # 감지 지점 기준으로 1cm 상승
+    grip()
+
+    movej(p8)
+    movej(p7)
+    movel(pp10)
+
+    # 초콜릿 흔들기
+    global_speed(170, 100, 170, 100)
+    for _ in range(3):
+        movel(pp9)
+        movel(pp10)
+    wait(1)
+    
+    global_speed(100, 50, 100, 50)
+    # 스프링클 dip 과정
+    grip()
+    movel(pp11)
+    movel(pp12)
+    
+    task_compliance_ctrl([300, 300, 300, 200, 200, 200])
+    amovel([0, 0, -100, 0, 0, 0], t=10, mod=1)
+    while True:
+        if check_force_condition(axis=2, min=6) == 1:
+            stop(2)
+            break
+        wait(0.05)
+    release_compliance_ctrl()
+    movel([0, 0, 10, 0, 0, 0], mod=1)   # 감지 지점 기준으로 1cm 상승
+    grip()
+
+    # 고객 전달
+    movel(pp13)
+    movel(pp14)
+
+    task_compliance_ctrl([300, 300, 300, 200, 200, 200])  # 외력 감지 시 그리퍼 open
+    while True:
+        if check_force_condition(axis=2, min=5) == 1:
+            stop(2)
+            break
+        wait(0.05)
+    release_compliance_ctrl()
+    ungrip()
+    wait(3)
+
+    global_speed(80, 50, 80, 50)
+    move_h()
+
+
+# ---- Run --------------------------------------------------------------------
+make()
+######################ver2최종코드
+

@@ -1,0 +1,191 @@
+# ============================================================
+# ===== Robot A (Client) : 스프링클 + Place 시나리오 ========
+# ============================================================
+
+BROKER_IP = "192.168.137.9"
+PORT = 20000
+ENC = "utf-8"
+RXBUF = ""
+
+CLOSE_PIN = 1
+OPEN_PIN  = 2
+HOME = [90, 0, 0, 0, 0, 0]
+
+# ---- Gripper 제어 ----------------------------------------------------------
+def grip():
+    set_tool_digital_output(-OPEN_PIN); wait(0.2)
+    set_tool_digital_output(CLOSE_PIN); wait(0.2)
+
+def ungrip():
+    set_tool_digital_output(-CLOSE_PIN); wait(0.2)
+    set_tool_digital_output(OPEN_PIN); wait(0.2)
+
+# ---- 속도/가속도 -----------------------------------------------------------
+def global_speed(j_vel, j_acc, x_vel, x_acc):
+    set_velj(j_vel); wait(0.2)
+    set_accj(j_acc); wait(0.2)
+    set_velx(x_vel); wait(0.2)
+    set_accx(x_acc); wait(0.2)
+
+def move_h():
+    movej(posj(90, 0, 0, 0, 0, 0)); wait(0.2)
+
+# ============================================================
+# ===== Waypoints =============================================
+# ============================================================
+px1  = posj(68.79, -30.01, 92.08, -12.27, 42.67, 104.61)
+px11 = posx(86.57, 206.71, 854.31, 74.05, 76.4, 111.47)
+    
+px2  = posj(68.92, 13.54, 97.33, -29.25, 12.84, 173.31)
+
+px3  = posj(62.31, 18.42, 105.9, -22.11, -14.25, 168.84)        
+px4  = posj(60.31, 22.07, 105.11, -22.9, -20.44, 168.58)# 건내받는 위치
+
+px7  = posj(72.35, 15.07, 112.28, -8.11, -16.18, 189.73)  #스프링클
+px8  = posj(90.75, 15.99, 112.78, -8.11, -14.53, 189.73)   #슈팅스타
+px9  =posj(106.62, 21.87, 103.3, -8.11, -18.96, 189.73)#땅콩 
+px10 =posj(125.91, 33.57, 78.63, -8.11, 2.36, 189.73)  #씨리얼
+px11 = posj(137.06, 53.32, 38.87, -10.43, 27.05, 196.52)      #코코넛가루
+
+
+px19 = posx(-788.86, 596.72, 259.1, 140.09, 101.66, -177.68)
+px37 = posx(-623.94, 332.17, 393.38, 154.11, 102.04, 160.41)
+
+px38 = posj(166.43, 46.21, 74.12, -7.21, -30.22, 184.79)
+
+px39 = posx(-846.28, 245.71, 256.18, 177.13, 92.14, 179.8)
+px31 = posx(-848.89, 233.26, 245.9, 176.34, 94.58, 173.78)
+
+px32 = posx(-841.19, 239.62, 113.06, 176.38, 88.94, -177.29)
+
+px33 = posx(-819.7, 241.48, 95.94, 178.3, 91.64, -179.59)
+px34 = posx(-345.85, 253.4, 959.77, 162.35, 38.45, 160.25)
+
+# ============================================================
+# ===== 시나리오 함수 =========================================
+# ============================================================
+def receive_and_wait():
+    global_speed(120, 70, 120, 70)
+    ungrip(); 
+    movej(px1); 
+    movej(px2); 
+    movej(px3);
+    movej(px4); 
+    grip(); 
+
+def sprinkle1():
+    global_speed(130, 80, 130, 80)
+    movej(px7); wait(6)
+
+def sprinkle2():
+    global_speed(130, 80, 130, 80)
+    movej(px8); wait(6)
+
+def sprinkle3():
+    global_speed(130, 80, 130, 80)
+    movej(px9); wait(6)
+
+def sprinkle4():
+    global_speed(130, 80, 130, 80)
+    movej(px10); wait(6)
+
+def sprinkle5():
+    global_speed(130, 80, 130, 80)
+    movej(px11); wait(6)
+
+def place():
+    global_speed(130, 80, 130, 80)
+    movel(px19);
+    movel(px37); 
+    
+    movej(px38); 
+    
+    movel(px39); 
+    movel(px31); 
+    movel(px32); 
+    ungrip(); wait(0.5)
+    
+    global_speed(130, 90, 130, 90)
+    
+    movel(px33);
+    movel(px34); 
+    move_h(); 
+
+# ============================================================
+# ===== 통신부 ===============================================
+# ============================================================
+def _send(sock, text):
+    client_socket_write(sock, (text + "\n").encode()); wait(0.2)
+
+def _read_some(sock, to=0.1, length=128):
+    global RXBUF
+    res, rx = client_socket_read(sock, length=length, timeout=to)
+    if res > 0:
+        RXBUF += rx.decode(ENC)
+
+def _recv_line(sock, timeout=300):
+    global RXBUF
+    elapsed = 0.0
+    while True:
+        idx = RXBUF.find("\n")
+        if idx >= 0:
+            line = RXBUF[:idx]
+            RXBUF = RXBUF[idx + 1:]
+            return line.strip()
+        _read_some(sock, to=0.1)
+        elapsed += 0.1
+        if elapsed >= timeout:
+            return None
+
+def go_home():
+    move_h(); 
+
+# ============================================================
+# ===== 메인 루프 =============================================
+# ============================================================
+def main():
+    sock = client_socket_open(BROKER_IP, PORT)
+    _send(sock, "ROLE:A\n")
+    tp_log("A connected")
+
+    while True:
+        msg = _recv_line(sock, timeout=999)
+        if not msg:
+            continue
+
+        if msg == "RECEIVE_AND_WAIT":
+            receive_and_wait(); 
+            _send(sock, "DONE_A")
+
+        elif msg == "SPRINKLE1":
+            sprinkle1();
+            _send(sock, "DONE_A")
+
+        elif msg == "SPRINKLE2":
+            sprinkle2(); 
+            _send(sock, "DONE_A")
+
+        elif msg == "SPRINKLE3":
+            sprinkle3(); 
+            _send(sock, "DONE_A")
+
+        elif msg == "SPRINKLE4":
+            sprinkle4(); 
+            _send(sock, "DONE_A")
+
+        elif msg == "SPRINKLE5":
+            sprinkle5(); 
+            _send(sock, "DONE_A")
+
+        elif msg == "PLACE":
+            place(); 
+            _send(sock, "DONE_A")
+
+        elif msg == "HOME":
+            go_home(); 
+            _send(sock, "DONE_A")
+
+        else:
+            wait(0.2)
+
+main()
