@@ -1,0 +1,276 @@
+# ============================================================
+# ===== Robot B (Standalone) : 초콜릿 딥 + 배치 시퀀스 ========
+# ============================================================
+BROKER_IP = "192.168.137.9"
+PORT = 20000
+ENC = "utf-8"
+RXBUF = ""
+
+# ---- 툴 / 홈 설정 -----------------------------------------------------------
+CLOSE_PIN = 1
+OPEN_PIN  = 2
+HOME = [90, 0, 0, 0, 0, 0]
+
+def grip():
+    """그리퍼 닫기"""
+    set_tool_digital_output(-OPEN_PIN)
+    wait(0.02)
+    set_tool_digital_output(CLOSE_PIN)
+
+def ungrip():
+    """그리퍼 열기"""
+    set_tool_digital_output(-CLOSE_PIN)
+    wait(0.02)
+    set_tool_digital_output(OPEN_PIN)
+
+# ---- 속도/가속도 전역 설정 -------------------------------------------------
+def global_speed(jv, ja, xv, xa):
+    set_velj(jv)
+    set_accj(ja)
+    set_velx(xv)
+    set_accx(xa)
+
+def move_h():
+    """홈 포즈 이동"""
+    movej(posj(90,0,0,0,0,0))
+
+
+# --- Waypoints 통합 ---------------------------------------------------------
+p1=posj(127.52,-46.49,-16.91,0,0,0); pp1=posx(442.85,-586.97,637.01,127.52,-63.39,0)
+p2=posj(156.5,-55.47,-73.9,12.91,41.32,-8.63); pp2=posx(671.52,-318.28,137.14,148.01,-88.79,1.32)
+p3=posj(155.5,-70.2,-49.29,14.05,30.65,-10.47); pp3=posx(743.83,-362.3,93.87,148.39,-89.6,1.73)
+p4=posj(155.39,-67.3,-49.9,14.05,28.53,-10.56); pp4=posx(743.1,-362.74,126.77,148.73,-89.39,1.92)
+p5=posj(179.05,-0.44,-84.31,-67.34,-1.46,-12.02); pp5=posx(489.98,-17.23,589.54,177.7,-85.31,-79.24)
+
+p15=posj(192.13,-3.51,-84.43,18.9,3.79,-79.82); pp15=posx(503.71,99.2,570.4,10.89,84.35,119.17)
+p16=posj(204.93,-32.74,-65.2,-37.48,4.26,-137.8); pp16=posx(641.68,297.36,420.29,27.53,94.55,5)
+# p17 원래 임시값 대신 수정된 버전 사용
+p17=posj(205.23,-32.93,-65.39,-5,4.74,-169.57); pp17=posx(643.04,297.01,419.11,25.64,93.6,5.47)
+p18=posj(203.22,-40.94,-62.73,-18.66,10.77,-168.48); pp18=posx(686.51,295.61,351.31,26.66,93.44,-6.63)
+p19=posj(205.19,-34.19,-71.91,1.46,10.78,-168.48); pp19=posx(640.83,293.94,361.64,24.92,95.33,12.92)
+
+p20=posx(566.22,498.66,542.77,42.61,80.07,20.94); pp20=posx(566.23,498.66,542.77,42.61,80.07,20.94)
+
+# (화이트초콜릿/밀크초콜릿 공통으로 쓰는 좌표들)
+# 밀크초콜릿 탱크/딥 구간
+p6=posj(206.55,-33.66,-53.99,-8.13,-1.36,-174.15); pp6=posx(643.9,314.33,494.21,26.36,89.01,-2.28)
+p7=posj(205.39,-38.3,-70.13,-8.17,18.06,-174.16); pp7=posx(655.1,309.95,340.11,27.92,90.54,-1.9)
+p8=posj(221.49,-41.65,-34.25,-7.43,-3.44,-174.88); pp8=posx(565.79,490.75,554.24,41.04,79.31,-2.22)
+
+# 화이트초콜릿 탱크/딥 구간
+p6_1 =posj(217.43,5.13,-101.3,-4.84,5.17,-175.61);  pp6_1 =posx(360.63,269.33,502.7,37.87,91.01,-0.42)
+p7_1 =posj(228.1,-6.29,-118.62,29.76,38.08,-205.85); pp7_1 =posx(340.75,314.96,331.5,30.27,90.66,-1.82)
+p8_1 =posj(247.49,-18.81,-78.49,-6.54,18.11,-212.15); pp8_1 =posx(237.81,568.65,499.72,69.55,79.31,-38.75)
+p22  =posj(225.48,7.62,-114.22,-21.5,19.34,-157.98); pp22  =posx(287.23,304.14,440.32,52.46,88.53,1.45)
+
+# 공통 후처리/배치/리턴 구간
+p9 =posj(245.06,-22.31,-80,-8.89,19,-298.24); pp9 =posx(268.18,576.31,450.38,67.96,83.54,-126.97)
+p10=posj(258.6,-12.64,-99.08,-11.79,-12.37,-346.93); pp10=posx(116.56,519.43,332.55,75.58,123.8,179.87)
+p11=posj(296.42,-25.14,-90.62,-14.94,-7.45,-352.2); pp11=posx(-261.04,548.64,281.37,114.13,122.94,171.74)
+p12=posj(296.63,-24.66,-108.7,-52.3,1.38,-309.12); pp12=posx(-233.26,473.91,174.08,118.12,132.51,179.59)
+p13=posj(324.18,28.37,-127.49,-40.96,-2.08,-309.12); pp13=posx(-227.29,175.32,415.87,142.79,100.69,-170.32)
+p14=posj(324.18,26.5,-62.9,-40.95,-2.13,-309.12); pp14=posx(-83.35,71.5,894.36,141.92,38.02,-168.27)
+
+
+# ============================================================
+# ===== 시나리오 함수 ========================================
+# ============================================================
+
+# --- 시나리오 1 : 밀크초콜릿 딥 ---
+def pick_and_milkchocodip():
+    global_speed(50,30,100,50)   # 기본 속도
+    ungrip(); wait(1)
+
+    # 1) 과일/사과 픽업 시작으로 가는 진입 (빠르게)
+    set_velx(450); set_accx(180)     # 빠른 어프로치
+    movel(pp1)
+
+    # 속도 원복
+    set_velx(100); set_accx(50)
+
+    # 집기 준비
+    movej(p2)
+
+    set_velx(100); set_accx(50)
+    movel(pp3)
+
+    grip(); wait(1)
+
+    # 과일 들고 나오는 경로 (빠르게)
+    set_velx(550); set_accx(200)
+    movel(pp4)
+    movel(pp5)
+
+    # 초콜릿 탱크 접근
+    set_velx(550); set_accx(200)
+    movel(pp15)
+
+    set_velx(200); set_accx(120)
+    movel(pp6)
+
+    # 딥 공정(회전/경로 순회)
+    set_velx(550); set_accx(200)
+    movel(pp16)
+
+    set_velx(550); set_accx(200)
+    movel(pp17)
+
+    set_velx(550); set_accx(200)
+    movel(pp18)
+
+    set_velx(550); set_accx(200)
+    movel(pp19)
+
+    set_velx(550); set_accx(200)
+    movel(pp7)
+
+    set_velx(550); set_accx(200)
+    movel(pp6)
+
+    # 마무리 드립 제거 / 흔들기 / 대기 존으로 이동 (빠르게)
+    set_velx(550); set_accx(200)
+    movel(pp8)
+
+    movel(pp20)
+
+    # 고객/전달 쪽 라우팅으로 넘어가는 구간 (특이점 피하기)
+    set_velx(550); set_accx(200)
+    movel(pp9)
+
+    set_velx(300); set_accx(130)
+    movel(pp11)
+
+    wait(2)
+
+
+# --- 시나리오 9 : 화이트초콜릿 딥 ---
+def pick_and_whitechocodip():
+    global_speed(50,30,50,30)
+    ungrip(); wait(1)
+
+    # 빠른 접근
+    set_velx(450); set_accx(180)
+    movel(pp1)
+
+    movej(p2)
+
+    set_velx(250); set_accx(200)
+    movel(pp3)
+
+    grip(); wait(1)
+
+    # 빠른 이탈 경로
+    set_velx(220); set_accx(100)
+    movel(pp4)
+    movel(pp5)
+
+    # 화이트초콜릿 탱크 공정
+    set_velx(550); set_accx(200)
+    movel(pp6_1)
+
+    set_velx(550); set_accx(200)
+    movel(pp22)
+
+    set_velx(550); set_accx(200)
+    movel(pp7_1)
+
+    set_velx(550); set_accx(200)
+    movel(pp6_1)
+
+    set_velx(550); set_accx(200)
+    movel(pp8_1)
+
+    # 고객/전달 쪽 특이점 경로로 이동
+    set_velx(550); set_accx(200)
+    movel(pp9)
+
+    set_velx(550); set_accx(200)
+    movel(pp11)
+
+    wait(2)
+
+
+# --- 시나리오 3 : 내려놓고 홈 ---
+def release_and_home():
+    global_speed(150,90,150,90)
+    ungrip(); wait(0.2)
+
+    # 여기서는 전체를 빠르게 복귀시키고 싶어하는 흐름이라
+    # 각 movel 전에 빠른 속도/가속도 입력
+    set_velx(1000); set_accx(400)
+    movel(pp11)
+
+    set_velx(1000); set_accx(400)
+    movel(pp12)
+
+    set_velx(1000); set_accx(400)
+    movel(pp13)
+
+    set_velx(1000); set_accx(400)
+    movel(pp14)
+
+    move_h()
+    wait(0.5)
+
+
+def go_home():
+    move_h()
+    wait(0.1)
+
+# --- 통신부 ---
+def _send(sock,t): client_socket_write(sock,(t+"\n").encode())
+def _read_some(sock,to=0.1,len=128):
+    global RXBUF; res,rx=client_socket_read(sock,length=len,timeout=to)
+    if res>0: RXBUF+=rx.decode(ENC)
+def _recv_line(sock,timeout=300):
+    global RXBUF; el=0.0
+    while True:
+        i=RXBUF.find("\n")
+        if i>=0: line=RXBUF[:i]; RXBUF=RXBUF[i+1:]; return line.strip()
+        _read_some(sock,to=0.1); el+=0.1
+        if el>=timeout: return None
+def go_home(): move_h(); wait(0.1)
+
+def main():
+    sock = client_socket_open(BROKER_IP, PORT)
+    _send(sock, "ROLE:B")
+    tp_log("B connected")
+
+    for _ in range(5):
+        _recv_line(sock, timeout=0.5)
+
+    while True:
+        msg = _recv_line(sock, timeout=999)
+        if not msg:
+            continue
+
+        if msg == "PICK_AND_MILKCHOCODIP":
+            tp_log("B: PICK_AND_MILKCHOCODIP")
+            wait(0.5)
+            pick_and_milkchocodip()
+            wait(3)  # ✅ 모션 완전 종료 대기
+            _send(sock, "DONE_B")
+
+        elif msg == "PICK_AND_WHITECHOCODIP":
+            tp_log("B: PICK_AND_WHITECHOCODIP")
+            wait(0.5)
+            pick_and_whitechocodip()
+            wait(3)  # ✅ 모션 완전 종료 대기
+            _send(sock, "DONE_B")
+
+        elif msg == "RELEASE_AND_HOME":
+            tp_log("B: RELEASE_AND_HOME")
+            wait(0.5)
+            release_and_home()
+            wait(3)  # ✅ 홈복귀 후 완료 대기
+            _send(sock, "DONE_B")
+
+        elif msg == "HOME":
+            wait(0.5)
+            go_home()
+            wait(3)
+            _send(sock, "DONE_B")
+
+        else:
+            tp_log("B ignore " + str(msg))
+main()
